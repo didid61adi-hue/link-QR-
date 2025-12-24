@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generator QR Code dari Link</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            background-color: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+            padding: 40px;
+            width: 100%;
+            max-width: 800px;
+            margin: 20px auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            color: #2575fc;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #666;
+            font-size: 1.1rem;
+            margin-bottom: 30px;
+        }
+        
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 40px;
+            position: relative;
+        }
+        
+        .step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+            width: 150px;
+        }
+        
+        .step-number {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #e0e0e0;
+            color: #888;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .step.active .step-number {
+            background-color: #2575fc;
+            color: white;
+            transform: scale(1.1);
+        }
+        
+        .step.completed .step-number {
+            background-color: #4CAF50;
+            color: white;
+        }
+        
+        .step-text {
+            font-size: 0.9rem;
+            color: #888;
+            text-align: center;
+        }
+        
+        .step.active .step-text {
+            color: #2575fc;
+            font-weight: 600;
+        }
+        
+        .step.completed .step-text {
+            color: #4CAF50;
+        }
+        
+        .step-connector {
+            height: 3px;
+            background-color: #e0e0e0;
+            flex: 1;
+            margin-top: 18px;
+            max-width: 100px;
+        }
+        
+        .step.completed + .step-connector {
+            background-color: #4CAF50;
+        }
+        
+        .content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .input-section, .qr-section {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .qr-section {
+            display: none;
+        }
+        
+        .input-group {
+            width: 100%;
+            margin-bottom: 30px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #444;
+        }
+        
+        input[type="url"] {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+        
+        input[type="url"]:focus {
+            border-color: #2575fc;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(37, 117, 252, 0.1);
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            width: 100%;
+        }
+        
+        button {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .btn-primary {
+            background-color: #2575fc;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #1c67e8;
+            transform: translateY(-3px);
+            box-shadow: 0 7px 15px rgba(37, 117, 252, 0.3);
+        }
+        
+        .btn-primary:disabled {
+            background-color: #a0c3ff;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .btn-secondary {
+            background-color: #f1f1f1;
+            color: #333;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #e0e0e0;
+        }
+        
+        .loading {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            margin: 30px 0;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f1f1f1;
+            border-top: 5px solid #2575fc;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .qr-container {
+            background-color: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            margin: 30px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        #qrcode {
+            margin-bottom: 20px;
+        }
+        
+        .qr-info {
+            text-align: center;
+            max-width: 300px;
+        }
+        
+        .qr-info h3 {
+            margin-bottom: 10px;
+            color: #2575fc;
+        }
+        
+        .qr-info p {
+            color: #666;
+            line-height: 1.5;
+            font-size: 0.95rem;
+        }
+        
+        .link-preview {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            word-break: break-all;
+            font-size: 0.9rem;
+            color: #555;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .btn-download {
+            background-color: #4CAF50;
+            color: white;
+        }
+        
+        .btn-download:hover {
+            background-color: #3d8b40;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.9rem;
+        }
+        
+        .instructions {
+            background-color: #f0f7ff;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+        
+        .instructions h3 {
+            color: #2575fc;
+            margin-bottom: 10px;
+        }
+        
+        .instructions ol {
+            padding-left: 20px;
+            color: #555;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 25px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .step {
+                width: 100px;
+            }
+            
+            .step-connector {
+                max-width: 60px;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-qrcode"></i> Generator QR Code</h1>
+            <p class="subtitle">Ubah link Anda menjadi QR code dengan mudah dan cepat</p>
+        </header>
+        
+        <div class="step-indicator">
+            <div class="step active">
+                <div class="step-number">1</div>
+                <div class="step-text">Masukkan Link</div>
+            </div>
+            <div class="step-connector"></div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-text">Proses Pembuatan</div>
+            </div>
+            <div class="step-connector"></div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-text">QR Code Siap</div>
+            </div>
+        </div>
+        
+        <div class="content">
+            <div class="input-section" id="inputSection">
+                <div class="input-group">
+                    <label for="urlInput"><i class="fas fa-link"></i> Masukkan Link URL:</label>
+                    <input type="url" id="urlInput" placeholder="Contoh: https://www.contoh.com" required>
+                </div>
+                
+                <div class="button-group">
+                    <button id="generateBtn" class="btn-primary">
+                        <i class="fas fa-qrcode"></i> Lanjutkan & Generate QR
+                    </button>
+                </div>
+            </div>
+            
+            <div class="loading" id="loadingSection">
+                <div class="spinner"></div>
+                <p>Sedang membuat QR code, harap tunggu...</p>
+            </div>
+            
+            <div class="qr-section" id="qrSection">
+                <div class="qr-container">
+                    <div id="qrcode"></div>
+                    <div class="qr-info">
+                        <h3>QR Code Telah Dibuat!</h3>
+                        <p>QR code di atas telah berhasil dibuat dari link berikut:</p>
+                        <div class="link-preview" id="linkPreview"></div>
+                    </div>
+                </div>
+                
+                <div class="action-buttons">
+                    <button id="downloadBtn" class="btn-download">
+                        <i class="fas fa-download"></i> Download QR Code
+                    </button>
+                    <button id="newQrBtn" class="btn-secondary">
+                        <i class="fas fa-plus"></i> Buat QR Baru
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="instructions">
+            <h3><i class="fas fa-info-circle"></i> Cara Menggunakan:</h3>
+            <ol>
+                <li>Masukkan link URL yang ingin Anda ubah menjadi QR code di kolom input.</li>
+                <li>Klik tombol "Lanjutkan & Generate QR" untuk memulai proses pembuatan.</li>
+                <li>Tunggu beberapa detik sampai QR code berhasil dibuat.</li>
+                <li>Setelah QR code muncul, Anda dapat mendownloadnya atau membuat QR code baru.</li>
+            </ol>
+        </div>
+    </div>
+    
+    <footer>
+        <p>Website Generator QR Code &copy; 2023 - Dibuat dengan <i class="fas fa-heart" style="color:#ff4757;"></i></p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Elemen DOM
+            const urlInput = document.getElementById('urlInput');
+            const generateBtn = document.getElementById('generateBtn');
+            const loadingSection = document.getElementById('loadingSection');
+            const qrSection = document.getElementById('qrSection');
+            const inputSection = document.getElementById('inputSection');
+            const qrcodeElement = document.getElementById('qrcode');
+            const linkPreview = document.getElementById('linkPreview');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const newQrBtn = document.getElementById('newQrBtn');
+            const steps = document.querySelectorAll('.step');
+            const stepConnectors = document.querySelectorAll('.step-connector');
+            
+            let qrCodeInstance = null;
+            
+            // Fungsi untuk update step indicator
+            function updateStepIndicator(stepNumber) {
+                steps.forEach((step, index) => {
+                    step.classList.remove('active', 'completed');
+                    
+                    if (index < stepNumber - 1) {
+                        step.classList.add('completed');
+                    } else if (index === stepNumber - 1) {
+                        step.classList.add('active');
+                    }
+                });
+                
+                // Update connectors
+                stepConnectors.forEach((connector, index) => {
+                    if (index < stepNumber - 2) {
+                        connector.style.backgroundColor = '#4CAF50';
+                    } else if (index === stepNumber - 2) {
+                        connector.style.backgroundColor = stepNumber === 2 ? '#2575fc' : '#4CAF50';
+                    } else {
+                        connector.style.backgroundColor = '#e0e0e0';
+                    }
+                });
+            }
+            
+            // Inisialisasi step indicator
+            updateStepIndicator(1);
+            
+            // Fungsi untuk generate QR code
+            function generateQRCode(url) {
+                // Clear QR code sebelumnya
+                qrcodeElement.innerHTML = '';
+                
+                // Buat QR code baru
+                qrCodeInstance = new QRCode(qrcodeElement, {
+                    text: url,
+                    width: 200,
+                    height: 200,
+                    colorDark: "#000000",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+                
+                // Tampilkan link preview
+                linkPreview.textContent = url;
+                
+                // Update step indicator ke langkah 3
+                updateStepIndicator(3);
+                
+                // Tampilkan QR section, sembunyikan loading
+                setTimeout(() => {
+                    loadingSection.style.display = 'none';
+                    qrSection.style.display = 'flex';
+                }, 800);
+            }
+            
+            // Fungsi untuk validasi URL
+            function isValidURL(string) {
+                try {
+                    const url = new URL(string);
+                    return url.protocol === "http:" || url.protocol === "https:";
+                } catch (_) {
+                    return false;
+                }
+            }
+            
+            // Event listener untuk input URL
+            urlInput.addEventListener('input', function() {
+                const url = urlInput.value.trim();
+                generateBtn.disabled = !isValidURL(url);
+            });
+            
+            // Event listener untuk tombol generate
+            generateBtn.addEventListener('click', function() {
+                const url = urlInput.value.trim();
+                
+                if (!isValidURL(url)) {
+                    alert('Harap masukkan URL yang valid (contoh: https://www.example.com)');
+                    return;
+                }
+                
+                // Sembunyikan input section, tampilkan loading
+                inputSection.style.display = 'none';
+                loadingSection.style.display = 'flex';
+                
+                // Update step indicator ke langkah 2
+                updateStepIndicator(2);
+                
+                // Simulasi proses pembuatan QR code (3 detik)
+                setTimeout(() => {
+                    generateQRCode(url);
+                }, 3000);
+            });
+            
+            // Event listener untuk tombol download
+            downloadBtn.addEventListener('click', function() {
+                if (!qrCodeInstance) return;
+                
+                // Ambil canvas dari QR code
+                const canvas = qrcodeElement.querySelector('canvas');
+                if (!canvas) {
+                    alert('QR code belum siap untuk didownload');
+                    return;
+                }
+                
+                // Buat link untuk download
+                const link = document.createElement('a');
+                link.download = `qrcode-${Date.now()}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+            
+            // Event listener untuk tombol buat QR baru
+            newQrBtn.addEventListener('click', function() {
+                // Reset semua
+                urlInput.value = '';
+                generateBtn.disabled = true;
+                
+                // Sembunyikan QR section, tampilkan input section
+                qrSection.style.display = 'none';
+                inputSection.style.display = 'flex';
+                
+                // Update step indicator ke langkah 1
+                updateStepIndicator(1);
+            });
+            
+            // Contoh URL untuk pengujian
+            urlInput.value = 'https://www.example.com';
+            generateBtn.disabled = false;
+        });
+    </script>
+</body>
+</html>
